@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  BUYER
+  SELLER
+}
+
+enum ProjectStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  password       String
+  name           String
+  role           UserRole
+  avatar         String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  buyerProjects  Project[] @relation("BuyerProjects")
+  sellerProjects Project[] @relation("SellerProjects")
+  bids           Bid[]
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  title       String
+  description String
+  budgetMin   Float
+  budgetMax   Float
+  deadline    DateTime
+  status      ProjectStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  buyerId     String
+  buyer       User          @relation("BuyerProjects", fields: [buyerId], references: [id])
+  sellerId    String?
+  seller      User?         @relation("SellerProjects", fields: [sellerId], references: [id])
+  bids        Bid[]
+  files       File[]
+}
+
+model Bid {
+  id           String    @id @default(uuid())
+  amount       Float
+  deliveryTime Int       // in days
+  message      String
+  status       BidStatus @default(PENDING)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id])
+  sellerId     String
+  seller       User      @relation(fields: [sellerId], references: [id])
+}
+
+model File {
+  id        String   @id @default(uuid())
+  name      String
+  path      String
+  size      Int
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  // Relations
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
